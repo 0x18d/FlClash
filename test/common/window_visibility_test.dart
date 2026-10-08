@@ -40,13 +40,14 @@ void main() {
     unawaited(controller.show());
     await controller.hide();
 
-    expect(native.calls, ['show', 'dock:on', 'hide']);
+    // 先恢复任务栏登记，再映射窗口，验证 Cinnamon 的显示顺序。
+    expect(native.calls, ['dock:on', 'show', 'hide']);
 
     await tester.pump(const Duration(milliseconds: 999));
-    expect(native.calls, ['show', 'dock:on', 'hide']);
+    expect(native.calls, ['dock:on', 'show', 'hide']);
 
     await tester.pump(const Duration(milliseconds: 1));
-    expect(native.calls, ['show', 'dock:on', 'hide', 'dock:off']);
+    expect(native.calls, ['dock:on', 'show', 'hide', 'dock:off']);
   });
 
   testWidgets(
@@ -60,7 +61,7 @@ void main() {
       await controller.show();
       await tester.pump(const Duration(seconds: 2));
 
-      expect(native.calls, ['show', 'dock:on', 'hide', 'show', 'dock:on']);
+      expect(native.calls, ['dock:on', 'show', 'hide', 'dock:on', 'show']);
       expect(native.visible, isTrue);
     },
   );
@@ -75,7 +76,7 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await controller.hide();
 
-    expect(native.calls, ['show', 'dock:on', 'hide', 'dock:off']);
+    expect(native.calls, ['dock:on', 'show', 'hide', 'dock:off']);
   });
 
   test('a zero settle duration never defers the Dock switch', () async {
@@ -110,8 +111,8 @@ void main() {
     expect(native.calls, [
       'hide',
       'dock:off',
-      'show',
       'dock:on',
+      'show',
       'hide',
       'dock:off',
     ]);
@@ -124,7 +125,7 @@ void main() {
 
     unawaited(controller.show());
 
-    expect(native.calls, ['show']);
+    expect(native.calls, ['dock:on', 'show']);
   });
 
   test('a failed step does not block later requests', () async {
@@ -148,6 +149,6 @@ void main() {
     await controller.hide();
     await controller.show();
 
-    expect(calls, ['hide', 'dock:off', 'show', 'dock:on']);
+    expect(calls, ['dock:on', 'hide', 'dock:off', 'dock:on', 'show']);
   });
 }
