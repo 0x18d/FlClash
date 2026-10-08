@@ -86,7 +86,7 @@ void main() {
     unawaited(controller.show());
     await controller.hide();
 
-    expect(native.calls, ['show', 'dock:on', 'hide', 'dock:off']);
+    expect(native.calls, ['dock:on', 'show', 'hide', 'dock:off']);
   });
 
   testWidgets('rapid toggles run one at a time and flip parity each press', (
@@ -125,7 +125,8 @@ void main() {
 
     unawaited(controller.show());
 
-    expect(native.calls, ['dock:on', 'show']);
+    // setSkipTaskbar 是异步平台调用，首个同步可见信号证明请求已立即启动。
+    expect(native.calls, ['dock:on']);
   });
 
   test('a failed step does not block later requests', () async {
