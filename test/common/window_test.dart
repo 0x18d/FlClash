@@ -13,6 +13,7 @@ void main() {
   late bool isMaximized;
   late bool isFullScreen;
   late bool isMinimized;
+  late bool isAlwaysOnTop;
   late Rect bounds;
 
   setUp(() {
@@ -21,6 +22,7 @@ void main() {
     isMaximized = false;
     isFullScreen = false;
     isMinimized = false;
+    isAlwaysOnTop = false;
     bounds = const Rect.fromLTWH(20, 30, 1000, 800);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_windowChannel, (call) async {
@@ -30,6 +32,8 @@ void main() {
             'isMaximized' => isMaximized,
             'isFullScreen' => isFullScreen,
             'isMinimized' => isMinimized,
+            // Linux 显示流程会临时置顶窗口，测试桩需要返回可恢复的原始状态。
+            'isAlwaysOnTop' => isAlwaysOnTop,
             'getBounds' => <String, double>{
               'x': bounds.left,
               'y': bounds.top,
@@ -57,7 +61,14 @@ void main() {
 
     expect(
       calls,
-      containsAllInOrder(<String>['show', 'focus', 'setSkipTaskbar']),
+      containsAllInOrder(<String>[
+        'setSkipTaskbar',
+        'isAlwaysOnTop',
+        'setAlwaysOnTop',
+        'show',
+        'focus',
+        'setAlwaysOnTop',
+      ]),
     );
     await tester.pump(const Duration(seconds: 1));
   });
@@ -90,7 +101,15 @@ void main() {
 
     expect(
       calls,
-      containsAllInOrder(<String>['isVisible', 'show', 'setSkipTaskbar']),
+      containsAllInOrder(<String>[
+        'isVisible',
+        'setSkipTaskbar',
+        'isAlwaysOnTop',
+        'setAlwaysOnTop',
+        'show',
+        'focus',
+        'setAlwaysOnTop',
+      ]),
     );
     await tester.pump(const Duration(seconds: 1));
   });

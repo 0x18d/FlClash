@@ -44,6 +44,10 @@ class Window implements WindowPort {
       unawaited(protocol.registerLinux(protocolSchemes));
     }
     await windowManager.ensureInitialized();
+    if (system.isLinux) {
+      // Linux 任务栏重新接纳窗口时依赖 GTK 的窗口图标，不能只设置托盘图标。
+      await windowManager.setIcon('assets/images/icon.png');
+    }
     _supportsPosition = !system.isMacOS;
     if (system.isLinux) {
       _supportsPosition = await windowManager.isPositionSupported();
@@ -162,8 +166,22 @@ class Window implements WindowPort {
 
   Future<void> _showWindow() async {
     render?.resume();
-    await windowManager.show();
-    await windowManager.focus();
+    final wasAlwaysOnTop = system.isLinux
+        ? await windowManager.isAlwaysOnTop()
+        : false;
+    if (system.isLinux && !wasAlwaysOnTop) {
+      // Linux 合成器可能拒绝无激活令牌的 gtk_window_present，临时置顶可可靠提升窗口。
+      await windowManager.setAlwaysOnTop(true);
+    }
+    try {
+      await windowManager.show();
+      await windowManager.focus();
+    } finally {
+      if (system.isLinux && !wasAlwaysOnTop) {
+        // 只撤销本次临时置顶，保留用户原本的置顶设置。
+        await windowManager.setAlwaysOnTop(false);
+      }
+    }
   }
 
   Future<void> _hideWindow() async {
@@ -241,8 +259,9 @@ class WindowVisibilityController {
 
   Future<void> _show() async {
     _dockHidePending = false;
-    await _showWindow();
+    // 先恢复任务栏状态，再映射窗口，避免 Cinnamon 按隐藏状态缓存窗口。
     await _setSkipTaskbar(false);
+    await _showWindow();
     _dockSettleTimer?.cancel();
     _dockSettleTimer = dockSettleDuration == Duration.zero
         ? null
